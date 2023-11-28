@@ -8,7 +8,7 @@ on:
         type: string
       php_version:
         description: 'PHP Version'
-        required: true
+        required: false
         type: string
         default: '7.4'
 jobs:
