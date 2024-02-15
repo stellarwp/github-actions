@@ -1,0 +1,67 @@
+name: 'SquareOne - Install Composer'
+description: 'Install Composer Dependencies'
+author: 'moderntribe'
+inputs:
+  composer_version:
+    required: false
+    default: v1
+    description: Composer version to be used
+  composer_env:
+    required: false
+    description: Composer Environment variables
+  php_version:
+    required: false
+    default: "7.4"
+    description: PHP version to be used
+  disable_cache:
+    required: false
+    default: "false"
+    description: Flag to disable caching composer
+  folder:
+    required: false
+    default: .
+    description: Folder composer install should run
+  github_token:
+    required: false
+    description: Github token for composer auth
+runs:
+  using: composite
+  steps:
+
+    - name: Get Composer Cache Directory
+      id: composer-cache
+      working-directory: ${{ inputs.folder }}
+      shell: bash
+      run: |
+        echo "::set-output name=dir::$(composer config cache-files-dir)"
+
+    - uses: actions/cache@v2
+      if: ${{ inputs.disable_cache == 'true' }}
+      with:
+        path: ${{ steps.composer-cache.outputs.dir }}
+        key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-composer-
+
+    - name: Setup PHP, with composer and extensions
+      uses: shivammathur/setup-php@v2
+      with:
+        tools: composer:${{ inputs.composer_version }}
+        php-version: ${{ inputs.php_version }}
+
+    - name: Setup Github Token
+      if: ${{ inputs.github_token != '' }}
+      working-directory: ${{ inputs.folder }}
+      shell: bash
+      run: |
+        composer config -g github-oauth.github.com ${{ inputs.github_token }}
+
+    - name: Install composer dependencies
+      working-directory: ${{ inputs.folder }}
+      shell: bash
+      env:
+        COMPOSER_MEMORY_LIMIT: "-1"
+      run: |
+        echo "${{ inputs.composer_env }}" >> .env
+        composer install --optimize-autoloader --ignore-platform-reqs --no-dev
+        rm .env
