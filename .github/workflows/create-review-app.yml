@@ -1,0 +1,44 @@
+name: Reusable Workflow - Create Review App
+on:
+  workflow_call:
+    inputs:
+      app_name:
+        required: true
+        type: string
+        description: Dokku Original App Name
+      pr_number:
+        required: false
+        type: string
+        description: Pull Request Number
+    secrets:
+      github_pat_token:
+        required: true
+      server:
+        required: true
+      ssh_private_key:
+        required: true
+
+jobs:
+  create_review_app:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set common variables
+        uses: moderntribe/actions/utils/common-variables@v1
+        with:
+          app_name: ${{ inputs.app_name }}
+          pr_number: ${{ inputs.pr_number }}
+
+      - name: Setup SSH
+        uses: moderntribe/actions/utils/ssh-agent@v1
+        with:
+          ssh_private_key: ${{ secrets.ssh_private_key }}
+          server: ${{ secrets.server }}
+
+      - name: Create review app ${{ inputs.review_app_name }}
+        uses: moderntribe/actions/dokku/create-review-app@v1
+        with:
+          app_name: ${{ inputs.app_name }}
+          review_app_name: ${{ env.REVIEW_APP }}
+          server: ${{ secrets.server }}
+          github_pat_token: ${{ secrets.github_pat_token }}
+          gha_url: ${{ env.GHA_URL }}
