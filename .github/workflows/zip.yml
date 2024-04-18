@@ -15,14 +15,17 @@ on:
       production:
         description: 'Is this a production build?'
         default: false
+        required: false
         type: boolean
       i18n:
         description: 'Perform pup i18n steps'
         default: true
+        required: false
         type: boolean
       check:
         description: 'Perform pup check steps'
         default: true
+        required: false
         type: boolean
       slack_channel:
         description: 'Slack channel ID to post to'
