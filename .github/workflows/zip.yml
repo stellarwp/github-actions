@@ -50,25 +50,17 @@ jobs:
           submodules: recursive
 
       # ------------------------------------------------------------------------------
-      # Prepare job variables.
-      # ------------------------------------------------------------------------------
-      - name: Prepare job variables
-        run: |
-          echo "JOB_REF=${{ inputs.ref }}" >> $GITHUB_ENV
-          echo "branch=${JOB_REF}" >> $GITHUB_OUTPUT
-
-      # ------------------------------------------------------------------------------
       # Pup and filename setup.
       # ------------------------------------------------------------------------------
       - name: install pup
         run: composer -- pup
 
       - name: get version
-        if: inputs.production
+        if: ${{ inputs.production == true }}
         run: echo "VERSION=$(composer -- pup get-version)" >> $GITHUB_ENV
 
       - name: get dev version
-        if: ${{ !inputs.production }}
+        if: ${{ inputs.production == false }}
         run: echo "VERSION=$(composer -- pup get-version --dev)" >> $GITHUB_ENV
 
       - name: get zip name
@@ -79,7 +71,7 @@ jobs:
       # ------------------------------------------------------------------------------
       - name: Check if zip already exists
         uses: the-events-calendar/action-s3-utility@main
-        if: ${{ !inputs.production }}
+        if: ${{ inputs.production == false }}
         id: s3_zip_exists
         continue-on-error: true
         env:
