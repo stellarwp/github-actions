@@ -6,7 +6,7 @@ on:
       GH_BOT_TOKEN:
         description: 'GitHub Bot Token'
         required: true
-      SLACK_PACKAGING_SECRET:
+      JENKINS_SECRET:
         description: 'Jenkins token for packaging requests'
         required: true
       S3_BUCKET:
@@ -167,7 +167,7 @@ jobs:
       - name: Trigger Slack message
         if: inputs.slack_channel && inputs.slack_thread
         run: |
-          curl -X GET "https://utility.theeventscalendar.com/slack-message.php?channel=${{ inputs.slack_channel }}&thread=${{ inputs.slack_thread }}&file=${{ env.ZIP_NAME }}.zip&secret=${{ secrets.SLACK_PACKAGING_SECRET }}&url=https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          curl -X GET "https://utility.theeventscalendar.com/slack-message.php?channel=${{ inputs.slack_channel }}&thread=${{ inputs.slack_thread }}&file=${{ env.ZIP_NAME }}.zip&secret=${{ secrets.JENKINS_SECRET }}&url=https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
 
       # ------------------------------------------------------------------------------
       # Upload the artifact if it is a workflow dispatch.
