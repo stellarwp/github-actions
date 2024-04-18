@@ -124,6 +124,7 @@ jobs:
         run: composer -- pup i18n
 
       - name: pup package
+        id: pup_package
         if: steps.s3_zip_exists.outcome != 'success'
         run:  composer -- pup package ${{ env.VERSION }}
 
@@ -132,11 +133,6 @@ jobs:
         run: |
           mkdir zip_files
           cp ${{ env.ZIP_NAME }}.zip zip_files
-
-      - name: pup package
-        id: pup_package
-        if: steps.s3_zip_exists.outcome != 'success'
-        run:  composer -- pup package ${{ env.VERSION }}
 
       # ------------------------------------------------------------------------------
       # Store zip on s3 service.
