@@ -23,7 +23,7 @@ on:
         required: true
       S3_ENDPOINT:
         description: 'S3 Endpoint'
-        require: true
+        required: true
     inputs:
       ref:
         description: 'Git Commit Ref (branch, tag, or hash)'
