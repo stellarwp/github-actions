@@ -124,8 +124,7 @@ jobs:
       # ------------------------------------------------------------------------------
       # Build and zip.
       # ------------------------------------------------------------------------------
-      # Set COMPOSER_TOKEN as an environment variable
-      - name: Set COMPOSER_TOKEN Env
+      - name: Determine if COMPOSER_TOKEN was provided
         run: echo "COMPOSER_TOKEN_AVAILABLE=${{ secrets.COMPOSER_TOKEN != '' }}" >> $GITHUB_ENV
 
       - name: pup build
@@ -133,7 +132,7 @@ jobs:
         run: composer -- pup build
 
       - name: pup build with composer auth
-        if: steps.s3_zip_exists.outcome != 'success' && env.COMPOSER_TOKEN_AVAILABLE != 'true'
+        if: steps.s3_zip_exists.outcome != 'success' && env.COMPOSER_TOKEN_AVAILABLE == 'true'
         env:
           COMPOSER_AUTH: '{"github-oauth": {"github.com": "${{ secrets.COMPOSER_TOKEN }}"}}'
         run: composer -- pup build
