@@ -125,7 +125,12 @@ jobs:
       # Build and zip.
       # ------------------------------------------------------------------------------
       - name: Determine if COMPOSER_TOKEN was provided
-        run: echo "COMPOSER_TOKEN_AVAILABLE=${{ secrets.COMPOSER_TOKEN != '' }}" >> $GITHUB_ENV
+        run: |
+          if [ -z "${{ secrets.COMPOSER_TOKEN }}" ]; then
+            echo "COMPOSER_TOKEN_AVAILABLE=false" >> $GITHUB_ENV
+          else
+            echo "COMPOSER_TOKEN_AVAILABLE=true" >> $GITHUB_ENV
+          fi
 
       - name: pup build
         if: steps.s3_zip_exists.outcome != 'success' && env.COMPOSER_TOKEN_AVAILABLE == 'false'
