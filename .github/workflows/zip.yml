@@ -3,6 +3,9 @@ name: Generate Zip
 on:
   workflow_call:
     secrets:
+      COMPOSER_TOKEN:
+        description: 'Composer token'
+        required: false
       GH_BOT_TOKEN:
         description: 'GitHub Bot Token'
         required: true
@@ -32,9 +35,9 @@ on:
         type: string
       production:
         description: 'Is this a production build?'
-        default: 'no'
+        default: false
         required: false
-        type: string
+        type: boolean
       i18n:
         description: 'Perform pup i18n steps'
         default: true
@@ -74,11 +77,11 @@ jobs:
         run: composer -- pup
 
       - name: get version
-        if: ${{ inputs.production == 'yes' }}
+        if: ${{ inputs.production == true }}
         run: echo "VERSION=$(composer -- pup get-version)" >> $GITHUB_ENV
 
       - name: get dev version
-        if: ${{ inputs.production != 'yes' }}
+        if: ${{ inputs.production == false }}
         run: echo "VERSION=$(composer -- pup get-version --dev)" >> $GITHUB_ENV
 
       - name: get zip name
@@ -89,7 +92,7 @@ jobs:
       # ------------------------------------------------------------------------------
       - name: Check if zip already exists
         uses: the-events-calendar/action-s3-utility@main
-        if: ${{ inputs.production != 'yes' }}
+        if: ${{ inputs.production == false }}
         id: s3_zip_exists
         continue-on-error: true
         env:
@@ -122,11 +125,17 @@ jobs:
       # Build and zip.
       # ------------------------------------------------------------------------------
       - name: pup build
-        if: steps.s3_zip_exists.outcome != 'success'
+        if: steps.s3_zip_exists.outcome != 'success' && secrets.COMPOSER_TOKEN == ''
+        run: composer -- pup build
+
+      - name: pup build with composer auth
+        if: steps.s3_zip_exists.outcome != 'success' && secrets.COMPOSER_TOKEN != ''
+        env:
+          COMPOSER_AUTH: '{"github-oauth": {"github.com": "${{ secrets.COMPOSER_TOKEN }}"}}'
         run: composer -- pup build
 
       - name: pup check
-        if: steps.s3_zip_exists.outcome != 'success' && inputs.production == 'yes' && inputs.check
+        if: steps.s3_zip_exists.outcome != 'success' && inputs.production && inputs.check
         run: composer -- pup check
 
       - name: pup i18n
