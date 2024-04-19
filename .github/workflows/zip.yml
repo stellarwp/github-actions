@@ -124,23 +124,23 @@ jobs:
       # ------------------------------------------------------------------------------
       # Build and zip.
       # ------------------------------------------------------------------------------
-#      - name: Determine if COMPOSER_TOKEN was provided
-#        run: |
-#          if [ -z "${{ secrets.COMPOSER_TOKEN }}" ]; then
-#            echo "COMPOSER_TOKEN_AVAILABLE=false" >> $GITHUB_ENV
-#          else
-#            echo "COMPOSER_TOKEN_AVAILABLE=true" >> $GITHUB_ENV
-#          fi
+      - name: Determine if COMPOSER_TOKEN was provided
+        run: |
+          if [ -z "${{ secrets.COMPOSER_TOKEN }}" ]; then
+            echo "COMPOSER_TOKEN_AVAILABLE=false" >> $GITHUB_ENV
+          else
+            echo "COMPOSER_TOKEN_AVAILABLE=true" >> $GITHUB_ENV
+          fi
 
       - name: pup build
         if: steps.s3_zip_exists.outcome != 'success'
         run: composer -- pup build
 
-#      - name: pup build with composer auth
-#        if: steps.s3_zip_exists.outcome != 'success' && env.COMPOSER_TOKEN_AVAILABLE == 'true'
-#        env:
-#          COMPOSER_AUTH: '{"github-oauth": {"github.com": "${{ secrets.COMPOSER_TOKEN }}"}}'
-#        run: composer -- pup build
+      - name: pup build with composer auth
+        if: steps.s3_zip_exists.outcome != 'success' && env.COMPOSER_TOKEN_AVAILABLE == 'true'
+        env:
+          COMPOSER_AUTH: '{"github-oauth": {"github.com": "${{ secrets.COMPOSER_TOKEN }}"}}'
+        run: composer -- pup build
 
       - name: pup check
         if: steps.s3_zip_exists.outcome != 'success' && inputs.production && inputs.check
