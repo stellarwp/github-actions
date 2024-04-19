@@ -35,9 +35,9 @@ on:
         type: string
       production:
         description: 'Is this a production build?'
-        default: false
+        default: 'no'
         required: false
-        type: boolean
+        type: string
       i18n:
         description: 'Perform pup i18n steps'
         default: true
@@ -77,11 +77,11 @@ jobs:
         run: composer -- pup
 
       - name: get version
-        if: ${{ inputs.production == true }}
+        if: ${{ inputs.production == 'yes' }}
         run: echo "VERSION=$(composer -- pup get-version)" >> $GITHUB_ENV
 
       - name: get dev version
-        if: ${{ inputs.production == false }}
+        if: ${{ inputs.production == 'no' }}
         run: echo "VERSION=$(composer -- pup get-version --dev)" >> $GITHUB_ENV
 
       - name: get zip name
@@ -92,7 +92,7 @@ jobs:
       # ------------------------------------------------------------------------------
       - name: Check if zip already exists
         uses: the-events-calendar/action-s3-utility@main
-        if: ${{ inputs.production == false }}
+        if: ${{ inputs.production == 'no' }}
         id: s3_zip_exists
         continue-on-error: true
         env:
@@ -143,7 +143,7 @@ jobs:
         run: composer -- pup build
 
       - name: pup check
-        if: steps.s3_zip_exists.outcome != 'success' && inputs.production && inputs.check
+        if: steps.s3_zip_exists.outcome != 'success' && inputs.production == 'yes'&& inputs.check
         run: composer -- pup check
 
       - name: pup i18n
