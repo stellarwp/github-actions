@@ -71,6 +71,19 @@ jobs:
           submodules: recursive
 
       # ------------------------------------------------------------------------------
+      # Setup Node.
+      # ------------------------------------------------------------------------------
+      - name: Check for .nvmrc file
+        id: check-nvmrc
+        run: echo "::set-output name=exists::$(test -f ${{ github.workspace }}/.nvmrc && echo 'true' || echo 'false')"
+
+      - uses: actions/setup-node@v3
+        if: steps.check-nvmrc.outputs.exists == 'true'
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      # ------------------------------------------------------------------------------
       # Pup and filename setup.
       # ------------------------------------------------------------------------------
       - name: install pup
