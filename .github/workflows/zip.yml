@@ -48,6 +48,11 @@ on:
         default: 'yes'
         required: false
         type: string
+      additional_commands:
+        description: 'Execute additional commands'
+        default: ''
+        required: false
+        type: string
       slack_channel:
         description: 'Slack channel ID to post to'
         required: false
@@ -156,8 +161,12 @@ jobs:
         run: composer -- pup build
 
       - name: pup check
-        if: steps.s3_zip_exists.outcome != 'success' && inputs.production == 'yes'&& inputs.check == 'yes'
+        if: steps.s3_zip_exists.outcome != 'success' && inputs.production == 'yes' && inputs.check == 'yes'
         run: composer -- pup check
+
+      - name: pup workflows
+        if: steps.s3_zip_exists.outcome != 'success' && inputs.additional_commands != ''
+        run: ${{ inputs.additional_commands }}
 
       - name: pup i18n
         if: steps.s3_zip_exists.outcome != 'success' && inputs.i18n == 'yes'
