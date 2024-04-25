@@ -40,14 +40,14 @@ on:
         type: string
       i18n:
         description: 'Perform pup i18n steps'
-        default: true
+        default: 'yes'
         required: false
-        type: boolean
+        type: string
       check:
         description: 'Perform pup check steps'
-        default: true
+        default: 'yes'
         required: false
-        type: boolean
+        type: string
       slack_channel:
         description: 'Slack channel ID to post to'
         required: false
@@ -156,11 +156,11 @@ jobs:
         run: composer -- pup build
 
       - name: pup check
-        if: steps.s3_zip_exists.outcome != 'success' && inputs.production == 'yes'&& inputs.check
+        if: steps.s3_zip_exists.outcome != 'success' && inputs.production == 'yes'&& inputs.check == 'yes'
         run: composer -- pup check
 
       - name: pup i18n
-        if: steps.s3_zip_exists.outcome != 'success' && inputs.i18n
+        if: steps.s3_zip_exists.outcome != 'success' && inputs.i18n == 'yes'
         run: composer -- pup i18n
 
       - name: pup package
