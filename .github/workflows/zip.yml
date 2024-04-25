@@ -188,7 +188,7 @@ jobs:
         if: steps.s3_zip_exists.outcome != 'success' && inputs.production == 'yes' && inputs.check == 'yes'
         run: composer -- pup check
 
-      - name: pup workflows
+      - name: Run additional_commands
         if: steps.s3_zip_exists.outcome != 'success' && inputs.additional_commands != ''
         run: ${{ inputs.additional_commands }}
 
