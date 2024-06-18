@@ -69,7 +69,5 @@ jobs:
           echo "Running PHPCS on changed files: ${{ env.CHANGED_FILES }}"
           JSON_REPORT=$(vendor/bin/phpcs --report=json ${{ env.CHANGED_FILES }} )
 
-          echo "PHPCS JSON Report: $JSON_REPORT"
-
           echo "Executing reviewdog"
           "$JSON_REPORT" | jq -r ' .files | to_entries[] | .key as $path | .value.messages[] as $msg | "\($path):\($msg.line):\($msg.column):`\($msg.source)`<br>\($msg.message)" ' | reviewdog -efm="%f:%l:%c:%m" -name="phpcs" -filter-mode="added" -fail-on-error=true -reporter=github-pr-review
