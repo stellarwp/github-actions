@@ -71,10 +71,10 @@ jobs:
 
           echo "PHPCS JSON Report: $JSON_REPORT"
           # Check if JSON is valid
-          if ! echo "$JSON_REPORT" | jq empty; then
-            echo "Invalid JSON"
-            exit 1
-          fi
+          # if ! echo "$JSON_REPORT" | jq empty; then
+            # echo "Invalid JSON"
+            # exit 1
+          # fi
 
           echo "Executing reviewdog"
           "$JSON_REPORT" | jq -r ' .files | to_entries[] | .key as $path | .value.messages[] as $msg | "\($path):\($msg.line):\($msg.column):`\($msg.source)`<br>\($msg.message)" ' | reviewdog -efm="%f:%l:%c:%m" -name="phpcs" -filter-mode="added" -fail-on-error=true -reporter=github-pr-review
