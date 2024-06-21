@@ -65,9 +65,7 @@ jobs:
           MERGED_JSON="[]"
           if [ -n "$CHANGED_FILES" ]; then
             echo "$CHANGED_FILES"
-            IFS=$'\n' read -d '' -r -a FILE_ARRAY <<<"$CHANGED_FILES"
-            echo $?
-            declare -p FILE_ARRAY
+            readarray -t FILE_ARRAY <<<"$CHANGED_FILES"
               for FILE in "${FILE_ARRAY[@]}"; do
                   # New line
                   echo ""
@@ -89,7 +87,7 @@ jobs:
                   if [ $PHPCS_EXIT_CODE -ne 0 ]; then
                       NEED_TO_FAIL=1
                   fi
-              done <<< "$CHANGED_FILES"
+              done
           fi
 
           echo "Merged JSON is: $MERGED_JSON"
