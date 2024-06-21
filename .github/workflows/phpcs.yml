@@ -54,7 +54,7 @@ jobs:
       - name: Get list of changed files
         id: files
         run: |
-          echo "CHANGED_FILES=$(git diff --name-only --diff-filter=AM ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} -- . ':!tests' | grep '\.php$' | sed 's|^|\"|' | sed 's|$|\"|' | tr '\n' ' ')" >> $GITHUB_ENV
+          echo "CHANGED_FILES=$(git diff --name-only --diff-filter=AM ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} -- . ':!tests' | grep '\.php$' | tr '\n' ' ' | sed 's/ /\\ /g')" >> $GITHUB_ENV
 
       # ------------------------------------------------------------------------------
       # PHPCS
@@ -78,7 +78,7 @@ jobs:
 
           # Validate the JSON
           if ! echo "$JSON_REPORT" | jq empty; then
-            echo "Invalid JSON"
+            echo "Invalid JSON: $JSON_REPORT"
             exit 1
           fi
 
