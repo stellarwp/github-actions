@@ -54,7 +54,7 @@ jobs:
       - name: Get list of changed files
         id: files
         run: |
-          echo "CHANGED_FILES=$(git diff --name-only --diff-filter=AM ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} -- . ':!tests' | grep '\.php$' | tr '\n' ' ' | sed 's/ /\\ /g')" >> $GITHUB_ENV
+          echo "CHANGED_FILES=$(git diff --name-only --diff-filter=AM ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} -- . ':!tests' | grep '\.php$' | sed 's/ /\\ /g' | tr '\n' ' ' )" >> $GITHUB_ENV
 
       # ------------------------------------------------------------------------------
       # PHPCS
