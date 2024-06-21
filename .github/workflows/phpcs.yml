@@ -49,14 +49,6 @@ jobs:
           sudo chown -R root:root $GITHUB_WORKSPACE
 
       # ------------------------------------------------------------------------------
-      # Get changed files
-      # ------------------------------------------------------------------------------
-      - name: Get list of changed files
-        id: files
-        run: |
-          echo "CHANGED_FILES=$(git diff --name-only --diff-filter=AM ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} -- . ':!tests' | grep '\.php$' )" >> $GITHUB_ENV
-
-      # ------------------------------------------------------------------------------
       # PHPCS
       # ------------------------------------------------------------------------------
       - uses: reviewdog/action-setup@v1
@@ -66,7 +58,7 @@ jobs:
         env:
           REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.access-token }}
         run: |
-          CHANGED_FILES=$(echo ${{ env.CHANGED_FILES }})
+          CHANGED_FILES=$(CHANGED_FILES=$(git diff --name-only --diff-filter=AM ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} -- . ':!tests' | grep '\.php$' ))
           echo "$CHANGED_FILES"
           NEED_TO_FAIL=0
 
