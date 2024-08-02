@@ -15,10 +15,22 @@ on:
         required: false
         type: string
         default: '7.4'
+      debug:
+        description: 'Enable debug logging'
+        required: false
+        type: boolean
+        default: false
 jobs:
   phpcs:
     runs-on: ubuntu-latest
-    steps:
+      # ------------------------------------------------------------------------------
+      # Enable Debug Logging
+      # ------------------------------------------------------------------------------
+      - name: Enable Debug Logging
+        run: |
+          if [ "${{ inputs.debug }}" = "true" ]; then
+            echo "ACTIONS_STEP_DEBUG=true" >> $GITHUB_ENV
+          fi
       # ------------------------------------------------------------------------------
       # Checkout the repository
       # ------------------------------------------------------------------------------
@@ -44,26 +56,12 @@ jobs:
             ${{ runner.os }}-composer-
 
       # ------------------------------------------------------------------------------
-      # Check for PHPCS
-      # ------------------------------------------------------------------------------
-      - name: Check PHPCS installation
-        run: |
-          if [ ! -f vendor/bin/phpcs ]; then
-            echo "PHPCS not found in vendor/bin, installing..."
-            composer require "squizlabs/php_codesniffer=*"
-          else
-            echo "PHPCS found in vendor/bin"
-          fi
-          vendor/bin/phpcs --version
-
-      # ------------------------------------------------------------------------------
       # Get changed files
       # ------------------------------------------------------------------------------
       - name: Get list of changed files
         id: get-changed-files
         run: |
           CHANGED_FILES=$(git diff --name-only --diff-filter=AM ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} -- . ':!tests' | grep '\.php$')
-          echo "CHANGED_FILES<<EOF" >> $GITHUB_ENV
           echo "${CHANGED_FILES}" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
           echo "Changed files (debug): ${CHANGED_FILES}"
@@ -78,16 +76,13 @@ jobs:
         env:
           REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.access-token }}
         run: |
-          DEBUG=true
+          DEBUG=${{ inputs.debug }}
           BATCH_SIZE=50
           EXIT_CODE=0
 
           debug() {
             [[ "$DEBUG" == true ]] && echo "DEBUG: $1"
           }
-
-          debug "Fetching latest changes from the remote repository..."
-          git fetch origin
 
           latest_commit="${{ github.event.pull_request.base.sha }}"
           previous_commit="${{ github.event.pull_request.head.sha }}"
@@ -112,7 +107,7 @@ jobs:
 
           # Output PHPCS version
           debug "PHPCS version:"
-          vendor/bin/phpcs --version
+          debug vendor/bin/phpcs --version
 
           debug "Processing files in batches..."
           files_array=($changed_files)
