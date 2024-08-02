@@ -73,8 +73,9 @@ jobs:
       - name: Run PHPCS and Output Errors
         env:
           REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.access-token }}
+          ACTIONS_RUNNER_DEBUG: ${{ env.ACTIONS_RUNNER_DEBUG }}
         run: |
-          DEBUG=${{ env.RUNNER_DEBUG }}
+          DEBUG=${{ env.ACTIONS_RUNNER_DEBUG || 'false' }}
           BATCH_SIZE=50
           EXIT_CODE=0
 
