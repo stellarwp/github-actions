@@ -20,13 +20,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # ------------------------------------------------------------------------------
-      # Enable Debug Logging
-      # ------------------------------------------------------------------------------
-      - name: Enable Debug Logging
-        run: |
-          echo "ACTIONS_STEP_DEBUG=true" >> $GITHUB_ENV
-
-      # ------------------------------------------------------------------------------
       # Checkout the repository
       # ------------------------------------------------------------------------------
       - name: Checkout code
@@ -49,16 +42,6 @@ jobs:
           key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
           restore-keys: |
             ${{ runner.os }}-composer-
-
-      # ------------------------------------------------------------------------------
-      # Set up PHP and Install Composer Dependencies
-      # ------------------------------------------------------------------------------
-      - name: Set up PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ inputs.php_version }}
-      - name: Install Composer dependencies
-        uses: ramsey/composer-install@v2
 
       # ------------------------------------------------------------------------------
       # Check for PHPCS
