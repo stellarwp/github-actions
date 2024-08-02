@@ -35,13 +35,22 @@ jobs:
         id: get-composer-cache-dir
         run: |
           echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
-      - name: Cache Composer dependencies
-        uses: actions/cache@v2
+      - uses: actions/cache@v2
+        id: composer-cache
         with:
           path: ${{ steps.get-composer-cache-dir.outputs.dir }}
           key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
           restore-keys: |
             ${{ runner.os }}-composer-
+
+      - uses: "shivammathur/setup-php@v2"
+        with:
+          php-version: ${{ inputs.php_version }}
+      - uses: "ramsey/composer-install@v2"
+
+      - name: "Give permissions"
+        run: |
+          sudo chown -R root:root $GITHUB_WORKSPACE
 
       # ------------------------------------------------------------------------------
       # Get changed files
