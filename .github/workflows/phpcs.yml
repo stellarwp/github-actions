@@ -96,7 +96,7 @@ jobs:
 
           # Output PHPCS version
           debug "PHPCS version:"
-          debug vendor/bin/phpcs --version
+          debug $(vendor/bin/phpcs --version)
 
           debug "Processing files in batches..."
           files_array=($changed_files)
