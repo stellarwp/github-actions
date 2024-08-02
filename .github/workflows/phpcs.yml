@@ -15,6 +15,11 @@ on:
         required: false
         type: string
         default: '7.4'
+      debug:
+        description: 'Enable debug logging'
+        required: false
+        type: boolean
+        default: false
 jobs:
   phpcs:
     runs-on: ubuntu-latest
