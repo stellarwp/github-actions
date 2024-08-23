@@ -61,6 +61,8 @@ jobs:
         with:
           php-version: ${{ inputs.php_version }}
       - uses: "ramsey/composer-install@v2"
+        with:
+          composer-options: "--ignore-platform-reqs"
 
       - name: "Give permissions"
         run: |
