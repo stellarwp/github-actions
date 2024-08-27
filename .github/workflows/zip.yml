@@ -6,6 +6,9 @@ on:
       COMPOSER_TOKEN:
         description: 'Composer token'
         required: false
+      NODE_AUTH_TOKEN:
+        description: 'Node auth token'
+        required: false
       GH_BOT_TOKEN:
         description: 'GitHub Bot Token'
         required: true
@@ -185,11 +188,14 @@ jobs:
       - name: pup build
         if: steps.s3_zip_exists.outcome != 'success'
         run: composer -- pup build
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
 
       - name: pup build with composer auth
         if: steps.s3_zip_exists.outcome != 'success' && env.COMPOSER_TOKEN_AVAILABLE == 'true'
         env:
           COMPOSER_AUTH: '{"github-oauth": {"github.com": "${{ secrets.COMPOSER_TOKEN }}"}}'
+          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
         run: composer -- pup build
 
       - name: pup check
