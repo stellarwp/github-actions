@@ -88,7 +88,12 @@ jobs:
       # ------------------------------------------------------------------------------
       - name: Check for .nvmrc file
         id: check-nvmrc
-        run: echo "::set-output name=exists::$(test -f ${{ github.workspace }}/.nvmrc && echo 'true' || echo 'false')"
+        run: |
+          if [ -f .nvmrc ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
 
       - uses: actions/setup-node@v3
         if: steps.check-nvmrc.outputs.exists == 'true'
