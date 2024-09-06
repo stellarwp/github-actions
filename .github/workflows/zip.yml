@@ -102,7 +102,7 @@ jobs:
           cache: 'npm'
           
       - name: Set up authentication for NODE_AUTH_TOKEN if present
-        if: secrets.NODE_AUTH_TOKEN != ''
+        if: secrets.NODE_AUTH_TOKEN
         run: echo "//npm.pkg.github.com/:_authToken=\${{ secrets.NODE_AUTH_TOKEN }}" >> ~/.npmrc
 
       # ------------------------------------------------------------------------------
