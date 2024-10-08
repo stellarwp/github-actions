@@ -19,7 +19,7 @@ jobs:
   phpcs:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
           fetch-depth: 0
@@ -31,7 +31,7 @@ jobs:
         id: get-composer-cache-dir
         run: |
           echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
-      - uses: actions/cache@v2
+      - uses: actions/cache@v4
         id: composer-cache
         with:
           path: ${{ steps.get-composer-cache-dir.outputs.dir }}
