@@ -24,25 +24,11 @@ jobs:
           ref: ${{ inputs.ref }}
           fetch-depth: 0
 
-      # ------------------------------------------------------------------------------
-      # Prepare our cache directories
-      # ------------------------------------------------------------------------------
-      - name: Get Composer Cache Directory
-        id: get-composer-cache-dir
-        run: |
-          echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
-      - uses: actions/cache@v4
-        id: composer-cache
-        with:
-          path: ${{ steps.get-composer-cache-dir.outputs.dir }}
-          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-composer-
-
-      - uses: "shivammathur/setup-php@v2"
+      - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ inputs.php_version }}
-      - uses: "ramsey/composer-install@v2"
+
+      - uses: ramsey/composer-install@v3
         with:
           composer-options: "--ignore-platform-reqs"
 
