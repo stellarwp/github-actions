@@ -6,6 +6,9 @@ on:
       COMPOSER_TOKEN:
         description: 'Composer token'
         required: false
+      NODE_AUTH_TOKEN:
+        description: 'Node auth token'
+        required: false
       GH_BOT_TOKEN:
         description: 'GitHub Bot Token'
         required: true
@@ -85,19 +88,30 @@ jobs:
       # ------------------------------------------------------------------------------
       - name: Check for .nvmrc file
         id: check-nvmrc
-        run: echo "::set-output name=exists::$(test -f ${{ github.workspace }}/.nvmrc && echo 'true' || echo 'false')"
+        run: |
+          if [ -f .nvmrc ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
 
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         if: steps.check-nvmrc.outputs.exists == 'true'
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'
 
+      - name: Set up authentication for NODE_AUTH_TOKEN if present
+        run: |
+          if [ -n "${{ secrets.NODE_AUTH_TOKEN }}" ]; then
+            echo "//npm.pkg.github.com/:_authToken=${{ secrets.NODE_AUTH_TOKEN }}" >> ~/.npmrc
+          fi
+
       # ------------------------------------------------------------------------------
       # Setup bun.
       # ------------------------------------------------------------------------------
       - name: Setup bun
-        uses: oven-sh/setup-bun@v1
+        uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
 
@@ -162,7 +176,7 @@ jobs:
         id: get_composer_cache_dir
         run: |
           echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
-      - uses: actions/cache@v2
+      - uses: actions/cache@v4
         if: steps.s3_zip_exists.outcome != 'success'
         id: composer_cache
         with:
@@ -185,11 +199,14 @@ jobs:
       - name: pup build
         if: steps.s3_zip_exists.outcome != 'success'
         run: composer -- pup build
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
 
       - name: pup build with composer auth
         if: steps.s3_zip_exists.outcome != 'success' && env.COMPOSER_TOKEN_AVAILABLE == 'true'
         env:
           COMPOSER_AUTH: '{"github-oauth": {"github.com": "${{ secrets.COMPOSER_TOKEN }}"}}'
+          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
         run: composer -- pup build
 
       - name: pup check
@@ -214,7 +231,6 @@ jobs:
         run: |
           mkdir zip_files
           cp ${{ env.ZIP_NAME }}.zip zip_files
-
       # ------------------------------------------------------------------------------
       # Store zip on s3 service.
       # ------------------------------------------------------------------------------
@@ -239,13 +255,12 @@ jobs:
         if: inputs.slack_channel && inputs.slack_thread
         run: |
           curl -X GET "https://utility.theeventscalendar.com/slack-message.php?channel=${{ inputs.slack_channel }}&thread=${{ inputs.slack_thread }}&file=${{ env.ZIP_NAME }}.zip&secret=${{ secrets.JENKINS_SECRET }}&url=https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-
       # ------------------------------------------------------------------------------
       # Upload the artifact if it is a workflow dispatch.
       # ------------------------------------------------------------------------------
       - name: Upload plugin artifact
         if: steps.pup_package.outcome == 'success' && github.event_name == 'workflow_dispatch'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ env.ZIP_NAME }}
           path: .pup-zip
