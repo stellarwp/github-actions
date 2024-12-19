@@ -12,7 +12,7 @@ It allows us to download a dependency zip from S3 when available.
 
 ```yaml
 dependency-zip:
-    uses: stellarwp/github-actions/.github/workflows/dependency-zip.yml@dependency-zip
+    uses: stellarwp/github-actions/.github/workflows/dependency-zip.yml@main
     with:
       repository: <owner>/<repo>
     secrets:
