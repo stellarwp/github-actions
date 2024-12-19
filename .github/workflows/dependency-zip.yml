@@ -1,0 +1,166 @@
+# This workflow checks if a dependency zip file that matches the current working branch exists in an S3 bucket.
+name: Dependency zip
+
+on:
+  workflow_call:
+    inputs:
+      repository:
+        description: "Dependency repository to checkout"
+        required: true
+        type: string
+    secrets:
+      GITHUB_CHECKOUT_TOKEN:
+        description: "GitHub token to use for the checkout"
+        required: true
+      PACKAGED_ZIP_BUCKET:
+        description: "S3 bucket where the dependency zip is stored"
+        required: true
+      S3_ACCESS_KEY_ID:
+        description: "S3 access key ID"
+        required: true
+      S3_SECRET_ACCESS_KEY:
+        description: "S3 secret access key"
+        required: true
+      PACKAGED_ZIP_REGION:
+        description: "S3 region where the dependency zip is stored"
+        required: true
+      S3_ENDPOINT:
+        description: "S3 endpoint"
+        required: true
+    outputs:
+      use-release:
+        description: "Whether to use the release zip"
+        value: ${{ jobs.check-zip.outputs.use-release }}
+      s3-zip-name:
+        description: "Name of the dependency zip file in S3"
+        value: ${{ jobs.check-zip.outputs.s3-zip-name }}
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+
+    outputs:
+      checkout-path: ${{ steps.checkout_path.outputs.path }}
+      head-branch: ${{ steps.branch_values.outputs.head_branch }}
+      base-branch: ${{ steps.branch_values.outputs.base_branch }}
+      is-main: ${{ steps.branch_values.outputs.head_branch == 'main' }}
+
+    steps:
+      - name: Define the checkout path
+        id: checkout_path
+        run: |
+          repository=${{ inputs.repository }}
+          echo "path=${repository//\//_}" >> $GITHUB_OUTPUT
+
+      - name: Define the head and base branches
+        id: branch_values
+        run: |
+          if [ -z "$GITHUB_HEAD_REF" ]; then
+            echo "head_branch=${GITHUB_REF#refs/heads/}" >> $GITHUB_OUTPUT
+          else
+            echo "head_branch=$GITHUB_HEAD_REF" >> $GITHUB_OUTPUT
+          fi
+
+          if [ -z "$GITHUB_BASE_REF" ]; then
+            echo "base_branch=main" >> $GITHUB_OUTPUT
+          else
+            echo "base_branch=$GITHUB_BASE_REF" >> $GITHUB_OUTPUT
+          fi
+
+  check-branch:
+    runs-on: ubuntu-latest
+
+    needs:
+      - prepare
+
+    # If the head branch is main, we don't need to check the dependency branch, as we will use the release zip.
+    if: ${{ needs.prepare.outputs.is-main == 'false' }}
+
+    outputs:
+      branch-to-checkout: ${{ steps.output_values.outputs.dependency_branch }}
+      is-main: ${{ steps.output_values.outputs.dependency_branch == 'main' }}
+
+    steps:
+      - name: Checkout dependency to verify the available branches
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.repository }}
+          ref: main
+          path: ${{ needs.prepare.outputs.checkout-path }}
+          fetch-depth: 1
+          token: ${{ secrets.GITHUB_CHECKOUT_TOKEN }}
+
+      - name: Check if the required branch exists
+        id: output_values
+        run: |
+          cd ${{ needs.prepare.outputs.checkout-path }}
+
+          head_branch_exists=$(git ls-remote --heads origin ${{ needs.prepare.outputs.head-branch }} | wc -l)
+
+          if [ $head_branch_exists -eq 1 ]; then
+            echo "dependency_branch=${{ needs.prepare.outputs.head-branch }}" >> $GITHUB_OUTPUT
+          else
+            base_branch_exists=$(git ls-remote --heads origin ${{ needs.prepare.outputs.base-branch }} | wc -l)
+
+            if [ $base_branch_exists -eq 1 ]; then
+              echo "dependency_branch=${{ needs.prepare.outputs.base-branch }}" >> $GITHUB_OUTPUT
+            else
+              echo "dependency_branch=main" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+  check-zip:
+    runs-on: ubuntu-latest
+
+    needs:
+      - prepare
+      - check-branch
+
+    outputs:
+      use-release: ${{ steps.output_values.outputs.use-release }}
+      s3-zip-name: ${{ steps.output_values.outputs.s3-zip-name }}
+
+    steps:
+      - name: Checkout dependency
+        if: ${{ needs.prepare.outputs.is-main == 'false' && needs.check-branch.outputs.is-main == 'false' }}
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.repository }}
+          ref: ${{ needs.check-branch.outputs.branch-to-checkout }}
+          path: ${{ needs.prepare.outputs.checkout-path }}
+          fetch-depth: 1
+          token: ${{ secrets.GITHUB_CHECKOUT_TOKEN }}
+
+      - name: Define the dependency zip name
+        if: ${{ needs.prepare.outputs.is-main == 'false' && needs.check-branch.outputs.is-main == 'false' }}
+        run: |
+          cd ${{ needs.prepare.outputs.checkout-path }}
+          composer -- pup
+          version=$(composer -- pup get-version --dev)
+          echo "DEPENDENCY_ZIP_NAME=$(composer -- pup zip-name $version).zip" >> $GITHUB_ENV
+
+      - name: Check if the zip exists in S3
+        if: ${{ needs.prepare.outputs.is-main == 'false' && needs.check-branch.outputs.is-main == 'false' }}
+        uses: the-events-calendar/action-s3-utility@main
+        id: s3_zip_exists
+        continue-on-error: true
+        env:
+          S3_BUCKET: ${{ secrets.PACKAGED_ZIP_BUCKET }}
+          S3_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
+          S3_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
+          S3_REGION: ${{ secrets.PACKAGED_ZIP_REGION }}
+          S3_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
+          COMMAND: exists
+          FILE: "${{ env.DEPENDENCY_ZIP_NAME }}"
+
+      - name: Set output values
+        id: output_values
+        run: |
+
+          # use the release zip if the file does not exists or is main
+          if [ "${{ needs.prepare.outputs.is-main }}" = "true" ] || [ "${{ needs.check-branch.outputs.is-main }}" = "true" ] || [ "${{ steps.s3_zip_exists.outcome }}" != "success" ]; then
+            echo 'use-release=true' >> $GITHUB_OUTPUT
+          else
+            echo 'use-release=false' >> $GITHUB_OUTPUT
+            echo "s3-zip-name=${{ env.DEPENDENCY_ZIP_NAME }}" >> $GITHUB_OUTPUT
+          fi
