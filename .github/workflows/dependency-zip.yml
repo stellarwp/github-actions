@@ -131,7 +131,7 @@ jobs:
 
     steps:
       - name: Checkout dependency
-        if: ${{ needs.prepare.outputs.is-main == 'false' && needs.check-branch.outputs.is-main == 'false' }}
+        if: ${{ needs.check-branch.outputs.is-main == 'false' }}
         uses: actions/checkout@v4
         with:
           repository: ${{ inputs.repository }}
@@ -141,7 +141,7 @@ jobs:
           token: ${{ secrets.GITHUB_CHECKOUT_TOKEN }}
 
       - name: Define the dependency zip name
-        if: ${{ needs.prepare.outputs.is-main == 'false' && needs.check-branch.outputs.is-main == 'false' }}
+        if: ${{ needs.check-branch.outputs.is-main == 'false' }}
         run: |
           cd ${{ needs.prepare.outputs.checkout-path }}
           composer -- pup
@@ -149,7 +149,7 @@ jobs:
           echo "DEPENDENCY_ZIP_NAME=$(composer -- pup zip-name $version).zip" >> $GITHUB_ENV
 
       - name: Check if the zip exists in S3
-        if: ${{ needs.prepare.outputs.is-main == 'false' && needs.check-branch.outputs.is-main == 'false' }}
+        if: ${{ needs.check-branch.outputs.is-main == 'false' }}
         uses: the-events-calendar/action-s3-utility@main
         id: s3_zip_exists
         continue-on-error: true
@@ -167,7 +167,7 @@ jobs:
         run: |
 
           # use the release zip if the file does not exists or is main
-          if [ "${{ needs.prepare.outputs.is-main }}" = "true" ] || [ "${{ needs.check-branch.outputs.is-main }}" = "true" ] || [ "${{ steps.s3_zip_exists.outcome }}" != "success" ]; then
+          if [ "${{ needs.check-branch.outputs.is-main }}" = "true" ] || [ "${{ steps.s3_zip_exists.outcome }}" != "success" ]; then
             echo 'use-release=true' >> $GITHUB_OUTPUT
           else
             echo 'use-release=false' >> $GITHUB_OUTPUT
