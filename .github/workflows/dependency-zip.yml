@@ -78,15 +78,13 @@ jobs:
     needs:
       - prepare
 
-    # If the head branch is main, we don't need to check the dependency branch, as we will use the release zip.
-    if: ${{ needs.prepare.outputs.is-main == 'false' }}
-
     outputs:
       branch-to-checkout: ${{ steps.output_values.outputs.dependency_branch }}
       is-main: ${{ steps.output_values.outputs.dependency_branch == inputs.main-branch }}
 
     steps:
       - name: Checkout dependency to verify the available branches
+        if: ${{ needs.prepare.outputs.is-main == 'false' }}
         uses: actions/checkout@v4
         with:
           repository: ${{ inputs.repository }}
@@ -98,6 +96,12 @@ jobs:
       - name: Check if the required branch exists
         id: output_values
         run: |
+
+          if [ "${{ needs.prepare.outputs.is-main }}" = "true" ]; then
+            echo "dependency_branch=${{ inputs.main-branch }}" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
           cd ${{ needs.prepare.outputs.checkout-path }}
 
           head_branch_exists=$(git ls-remote --heads origin ${{ needs.prepare.outputs.head-branch }} | wc -l)
@@ -127,7 +131,7 @@ jobs:
 
     steps:
       - name: Checkout dependency
-        if: ${{ needs.prepare.outputs.is-main == 'false' && needs.check-branch.outputs.is-main == 'false' }}
+        if: ${{ needs.check-branch.outputs.is-main == 'false' }}
         uses: actions/checkout@v4
         with:
           repository: ${{ inputs.repository }}
@@ -137,7 +141,7 @@ jobs:
           token: ${{ secrets.GITHUB_CHECKOUT_TOKEN }}
 
       - name: Define the dependency zip name
-        if: ${{ needs.prepare.outputs.is-main == 'false' && needs.check-branch.outputs.is-main == 'false' }}
+        if: ${{ needs.check-branch.outputs.is-main == 'false' }}
         run: |
           cd ${{ needs.prepare.outputs.checkout-path }}
           composer -- pup
@@ -145,7 +149,7 @@ jobs:
           echo "DEPENDENCY_ZIP_NAME=$(composer -- pup zip-name $version).zip" >> $GITHUB_ENV
 
       - name: Check if the zip exists in S3
-        if: ${{ needs.prepare.outputs.is-main == 'false' && needs.check-branch.outputs.is-main == 'false' }}
+        if: ${{ needs.check-branch.outputs.is-main == 'false' }}
         uses: the-events-calendar/action-s3-utility@main
         id: s3_zip_exists
         continue-on-error: true
@@ -163,7 +167,7 @@ jobs:
         run: |
 
           # use the release zip if the file does not exists or is main
-          if [ "${{ needs.prepare.outputs.is-main }}" = "true" ] || [ "${{ needs.check-branch.outputs.is-main }}" = "true" ] || [ "${{ steps.s3_zip_exists.outcome }}" != "success" ]; then
+          if [ "${{ needs.check-branch.outputs.is-main }}" = "true" ] || [ "${{ steps.s3_zip_exists.outcome }}" != "success" ]; then
             echo 'use-release=true' >> $GITHUB_OUTPUT
           else
             echo 'use-release=false' >> $GITHUB_OUTPUT
