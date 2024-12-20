@@ -78,15 +78,13 @@ jobs:
     needs:
       - prepare
 
-    # If the head branch is main, we don't need to check the dependency branch, as we will use the release zip.
-    if: ${{ needs.prepare.outputs.is-main == 'false' }}
-
     outputs:
       branch-to-checkout: ${{ steps.output_values.outputs.dependency_branch }}
       is-main: ${{ steps.output_values.outputs.dependency_branch == inputs.main-branch }}
 
     steps:
       - name: Checkout dependency to verify the available branches
+        if: ${{ needs.prepare.outputs.is-main == 'false' }}
         uses: actions/checkout@v4
         with:
           repository: ${{ inputs.repository }}
@@ -98,6 +96,12 @@ jobs:
       - name: Check if the required branch exists
         id: output_values
         run: |
+
+          if [ "${{ needs.prepare.outputs.is-main }}" = "true" ]; then
+            echo "dependency_branch=${{ inputs.main-branch }}" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
           cd ${{ needs.prepare.outputs.checkout-path }}
 
           head_branch_exists=$(git ls-remote --heads origin ${{ needs.prepare.outputs.head-branch }} | wc -l)
