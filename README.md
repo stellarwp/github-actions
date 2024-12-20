@@ -15,6 +15,7 @@ dependency-zip:
     uses: stellarwp/github-actions/.github/workflows/dependency-zip.yml@main
     with:
       repository: <owner>/<repo>
+      main-branch: <the-main-branch (default: main)>
     secrets:
       GITHUB_CHECKOUT_TOKEN: ${{ secrets.GH_BOT_TOKEN }}
       PACKAGED_ZIP_BUCKET: ${{ secrets.PACKAGED_ZIP_BUCKET }}

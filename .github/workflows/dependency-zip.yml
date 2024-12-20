@@ -8,6 +8,11 @@ on:
         description: "Dependency repository to checkout"
         required: true
         type: string
+      main-branch:
+        description: "Main branch of the dependency repository"
+        required: false
+        type: string
+        default: "main"
     secrets:
       GITHUB_CHECKOUT_TOKEN:
         description: "GitHub token to use for the checkout"
@@ -43,7 +48,7 @@ jobs:
       checkout-path: ${{ steps.checkout_path.outputs.path }}
       head-branch: ${{ steps.branch_values.outputs.head_branch }}
       base-branch: ${{ steps.branch_values.outputs.base_branch }}
-      is-main: ${{ steps.branch_values.outputs.head_branch == 'main' }}
+      is-main: ${{ steps.branch_values.outputs.head_branch == inputs.main-branch }}
 
     steps:
       - name: Define the checkout path
@@ -62,7 +67,7 @@ jobs:
           fi
 
           if [ -z "$GITHUB_BASE_REF" ]; then
-            echo "base_branch=main" >> $GITHUB_OUTPUT
+            echo "base_branch=${{ inputs.main-branch }}" >> $GITHUB_OUTPUT
           else
             echo "base_branch=$GITHUB_BASE_REF" >> $GITHUB_OUTPUT
           fi
@@ -78,14 +83,14 @@ jobs:
 
     outputs:
       branch-to-checkout: ${{ steps.output_values.outputs.dependency_branch }}
-      is-main: ${{ steps.output_values.outputs.dependency_branch == 'main' }}
+      is-main: ${{ steps.output_values.outputs.dependency_branch == inputs.main-branch }}
 
     steps:
       - name: Checkout dependency to verify the available branches
         uses: actions/checkout@v4
         with:
           repository: ${{ inputs.repository }}
-          ref: main
+          ref: ${{ inputs.main-branch }}
           path: ${{ needs.prepare.outputs.checkout-path }}
           fetch-depth: 1
           token: ${{ secrets.GITHUB_CHECKOUT_TOKEN }}
@@ -105,7 +110,7 @@ jobs:
             if [ $base_branch_exists -eq 1 ]; then
               echo "dependency_branch=${{ needs.prepare.outputs.base-branch }}" >> $GITHUB_OUTPUT
             else
-              echo "dependency_branch=main" >> $GITHUB_OUTPUT
+              echo "dependency_branch=${{ inputs.main-branch }}" >> $GITHUB_OUTPUT
             fi
           fi
 
