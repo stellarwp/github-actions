@@ -25,13 +25,17 @@ jobs:
     name: Tests
     runs-on: ubuntu-latest
     steps:
-      - name: Clone Repository
+      - name: Clone repository
         uses: actions/checkout@v4
 
-      - name: Configure Slic
+      - name: Configure slic
         uses: stellarwp/github-actions/configure-slic@main
         with:
           wp_version: 6.7
+
+      - name: Use package
+        run: |
+          ${SLIC_BIN} use ${{ github.event.repository.name }}
 
       - name: Build
         run: |
@@ -39,13 +43,14 @@ jobs:
           ${SLIC_BIN} npm ci
           ${SLIC_BIN} npm run build
 
-      - name: Run Tests
+      - name: Run tests
         run: ${SLIC_BIN} run --ext DotReporter
 
-      - name: Upload Artifacts
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         if: ${{ failure() }}
         with:
-          name: EndToEnd Failure Output
+          name: Tests failure output
           path: ./tests/_output/**
+          if-no-files-found: ignore
 ```
