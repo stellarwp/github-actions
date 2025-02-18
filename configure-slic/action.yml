@@ -1,0 +1,71 @@
+name: Configure slic
+description: Installs and configures slic
+
+inputs:
+  wp_version:
+    required: false
+    default: ''
+    description: WordPress version to be installed
+  airplane_mode:
+    required: false
+    default: 'on'
+    description: Airplane mode, no external connections (on/off)
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout slic
+      uses: actions/checkout@v4
+      with:
+        repository: stellarwp/slic
+        ref: main
+        path: slic
+        fetch-depth: 1
+
+    - name: Set up slic env vars
+      shell: bash
+      run: |
+        echo "SLIC_BIN=${GITHUB_WORKSPACE}/slic/slic" >> $GITHUB_ENV
+        echo "SLIC_WP_DIR=${GITHUB_WORKSPACE}/slic/_wordpress" >> $GITHUB_ENV
+        echo "SLIC_WORDPRESS_DOCKERFILE=Dockerfile.base" >> $GITHUB_ENV
+
+    - name: Set run context for slic
+      shell: bash
+      run: echo "SLIC=1" >> $GITHUB_ENV && echo "CI=1" >> $GITHUB_ENV
+
+    - name: Start ssh-agent
+      shell: bash
+      run: |
+        mkdir -p "${HOME}/.ssh";
+        ssh-agent -a /tmp/ssh_agent.sock;
+
+    - name: Export SSH_AUTH_SOCK env var
+      shell: bash
+      run: echo "SSH_AUTH_SOCK=/tmp/ssh_agent.sock" >> $GITHUB_ENV
+
+    - name: Set up slic for CI
+      shell: bash
+      run: |
+        cd ${GITHUB_WORKSPACE}/..
+        ${SLIC_BIN} here
+        ${SLIC_BIN} interactive off
+        ${SLIC_BIN} build-prompt off
+        ${SLIC_BIN} build-subdir off
+        ${SLIC_BIN} xdebug off
+        ${SLIC_BIN} debug on
+        ${SLIC_BIN} info
+        ${SLIC_BIN} config
+
+    - name: Update WordPress version
+      if: ${{ inputs.wp_version != '' }}
+      shell: bash
+      run: |
+        ${SLIC_BIN} wp core update --version=${{ inputs.wp_version }} --force
+        ${SLIC_BIN} wp core update-db
+        ${SLIC_BIN} wp core version
+
+    - name: Enable airplane mode
+      if: ${{ inputs.airplane_mode == 'on' }}
+      shell: bash
+      run: |
+        ${SLIC_BIN} airplane-mode on
