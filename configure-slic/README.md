@@ -37,11 +37,22 @@ jobs:
         run: |
           ${SLIC_BIN} use ${{ github.event.repository.name }}
 
+      - name: Configure php
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.4'
+          coverage: none
+          tools: stellarwp/pup
+
+      - name: Configure Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
       - name: Build
         run: |
-          ${SLIC_BIN} composer install
-          ${SLIC_BIN} npm ci
-          ${SLIC_BIN} npm run build
+          pup build --dev
 
       - name: Run tests
         run: ${SLIC_BIN} run --ext DotReporter
