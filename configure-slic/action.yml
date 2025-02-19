@@ -2,6 +2,18 @@ name: Configure slic
 description: Installs and configures slic
 
 inputs:
+  slic_ref:
+    required: false
+    default: 'main'
+    description: Reference to checkout stellarwp/slic repository
+  php_version:
+    required: false
+    default: ''
+    description: PHP version run in the container
+  composer_version:
+    required: false
+    default: ''
+    description: Composer version to be used
   wp_version:
     required: false
     default: ''
@@ -18,7 +30,7 @@ runs:
       uses: actions/checkout@v4
       with:
         repository: stellarwp/slic
-        ref: main
+        ref: ${{ inputs.slic_ref }}
         path: slic
         fetch-depth: 1
 
@@ -55,6 +67,18 @@ runs:
         ${SLIC_BIN} debug on
         ${SLIC_BIN} info
         ${SLIC_BIN} config
+
+    - name: Configure PHP version
+      if: ${{ inputs.php_version != '' }}
+      shell: bash
+      run: |
+        ${SLIC_BIN} php-version set ${{ inputs.php_version }} --skip-rebuild
+
+    - name: Configure Composer version
+      if: ${{ inputs.composer_version != '' }}
+      shell: bash
+      run: |
+        ${SLIC_BIN} composer set-version ${{ inputs.composer_version }}
 
     - name: Update WordPress version
       if: ${{ inputs.wp_version != '' }}
