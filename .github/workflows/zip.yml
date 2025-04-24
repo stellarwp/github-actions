@@ -73,6 +73,9 @@ on:
 jobs:
   generate-zip:
     runs-on: ubuntu-latest
+    env:
+      BUN_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
+
     steps:
       # ------------------------------------------------------------------------------
       # Checkout the repo.
@@ -224,7 +227,7 @@ jobs:
       - name: pup package
         id: pup_package
         if: steps.s3_zip_exists.outcome != 'success'
-        run:  composer -- pup package ${{ env.VERSION }}
+        run: composer -- pup package ${{ env.VERSION }}
 
       - name: Create the zip_files folder
         if: steps.s3_zip_exists.outcome != 'success'
