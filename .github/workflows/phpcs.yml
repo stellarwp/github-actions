@@ -15,6 +15,11 @@ on:
         required: false
         type: string
         default: '7.4'
+      change_permissions:
+        description: 'Whether to change file permissions to root'
+        required: false
+        type: boolean
+        default: true
 jobs:
   phpcs:
     runs-on: ubuntu-latest
@@ -33,6 +38,7 @@ jobs:
           composer-options: "--ignore-platform-reqs"
 
       - name: "Give permissions"
+        if: ${{ inputs.change_permissions }}
         run: |
           sudo chown -R root:root $GITHUB_WORKSPACE
 
