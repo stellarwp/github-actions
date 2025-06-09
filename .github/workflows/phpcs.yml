@@ -77,7 +77,7 @@ jobs:
           fi
 
           # Process JSON and run reviewdog
-          echo "$JSON_REPORT" | jq -r ' .files | to_entries[] | .key as $path | .value.messages[] as $msg | "\($path):\($msg.line):\($msg.column):`\($msg.source)`<br>\($msg.message)" ' | reviewdog -efm="%f:%l:%c:%m" -name="phpcs" -filter-mode="added" -fail-on-error=true -reporter=github-pr-review
+          echo "$JSON_REPORT" | jq -r ' .files | to_entries[] | .key as $path | .value.messages[] as $msg | "\($path):\($msg.line):\($msg.column):`\($msg.source)`<br>\($msg.message)" ' | reviewdog -efm="%f:%l:%c:%m" -name="phpcs" -filter-mode="added" -fail-level=any -reporter=github-pr-review
 
           # Exit with the original phpcs exit code
           exit $PHPCS_EXIT_CODE
