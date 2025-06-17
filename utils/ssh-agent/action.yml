@@ -14,12 +14,14 @@ runs:
   using: composite
   steps:
     - name: Generate unique SSH_AUTH_SOCK path
+      id: generate-sock
       shell: bash
       run: |
-        export SSH_AUTH_SOCK="/tmp/ssh_agent_${{ github.run_id }}.sock"
+        export SSH_AUTH_SOCK="$(mktemp -u /tmp/ssh_agent_XXXXXX.sock)"
         echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> "$GITHUB_ENV"
+        echo "sock_path=$SSH_AUTH_SOCK" >> "$GITHUB_OUTPUT"
 
-    - name: Add SSH key
+    - name: Start ssh-agent and add SSH key
       shell: bash
       env:
         SSH_AUTH_SOCK: ${{ env.SSH_AUTH_SOCK }}
@@ -27,12 +29,22 @@ runs:
         mkdir -p /home/runner/.ssh
         install -m 600 -D /dev/null /home/runner/.ssh/id_rsa
         echo "${{ inputs.ssh_private_key }}" > /home/runner/.ssh/id_rsa
-        ssh-agent -a "$SSH_AUTH_SOCK" > /dev/null
+
+        eval "$(ssh-agent -a "$SSH_AUTH_SOCK")"
         ssh-add /home/runner/.ssh/id_rsa
+
+        echo "SSH_AGENT_PID=$SSH_AGENT_PID" >> "$GITHUB_ENV"
 
     - name: Add server to known_hosts
       if: ${{ inputs.server != '' }}
       shell: bash
       run: |
         mkdir -p /home/runner/.ssh
-        ssh-keyscan -H ${{ inputs.server }} > /home/runner/.ssh/known_hosts
+        ssh-keyscan -H ${{ inputs.server }} >> /home/runner/.ssh/known_hosts
+
+    - name: Stop ssh-agent
+      if: env.SSH_AGENT_PID != ''
+      shell: bash
+      run: |
+        echo "Killing ssh-agent (PID: $SSH_AGENT_PID)"
+        kill "$SSH_AGENT_PID" || true
