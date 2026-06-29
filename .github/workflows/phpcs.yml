@@ -48,7 +48,11 @@ jobs:
       - name: Get list of changed files
         id: files
         run: |
-          echo "CHANGED_FILES=$(git diff --name-only --diff-filter=AM ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} -- . ':!tests' | grep '\.php$' | tr '\n' ' ')" >> $GITHUB_ENV
+          {
+            echo 'CHANGED_FILES<<EOF'
+            git diff --name-only --diff-filter=AM ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} -- . ':!tests' | grep '\.php$' || true
+            echo EOF
+          } >> $GITHUB_ENV
 
       # ------------------------------------------------------------------------------
       # PHPCS
@@ -60,8 +64,14 @@ jobs:
         env:
           REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.access-token }}
         run: |
-          # Run phpcs and capture both the output and the exit code
-          JSON_REPORT=$(vendor/bin/phpcs --report=json -q ${{ env.CHANGED_FILES }} || echo "")
+          # Skip when no PHP files changed
+          if [ -z "${{ env.CHANGED_FILES }}" ]; then
+            echo "No PHP files changed, skipping phpcs"
+            exit 0
+          fi
+
+          # Run phpcs — use xargs so filenames with spaces are handled correctly
+          JSON_REPORT=$(echo \"${{ env.CHANGED_FILES }}\" | xargs -d '\n' vendor/bin/phpcs --report=json -q)
           PHPCS_EXIT_CODE=$?
 
           # Check if phpcs produced a JSON report
