@@ -29,21 +29,9 @@ jobs:
           ref: ${{ inputs.ref }}
           fetch-depth: 0
 
-      - uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ inputs.php_version }}
-
-      - uses: ramsey/composer-install@v3
-        with:
-          composer-options: "--ignore-platform-reqs"
-
-      - name: "Give permissions"
-        if: ${{ inputs.change_permissions }}
-        run: |
-          sudo chown -R root:root $GITHUB_WORKSPACE
-
       # ------------------------------------------------------------------------------
-      # Get changed files
+      # Get changed files — runs right after checkout so we can skip remaining
+      # steps entirely when no PHP files changed
       # ------------------------------------------------------------------------------
       - name: Get list of changed files
         id: files
@@ -54,24 +42,42 @@ jobs:
             echo EOF
           } >> $GITHUB_ENV
 
+          if git diff --name-only --diff-filter=AM ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} -- . ':!tests' | grep -q '\.php$'; then
+            echo "has_php_files=true" >> $GITHUB_OUTPUT
+          else
+            echo "No PHP files changed, skipping phpcs"
+            echo "has_php_files=false" >> $GITHUB_OUTPUT
+          fi
+
+      - uses: shivammathur/setup-php@v2
+        if: steps.files.outputs.has_php_files == 'true'
+        with:
+          php-version: ${{ inputs.php_version }}
+
+      - uses: ramsey/composer-install@v3
+        if: steps.files.outputs.has_php_files == 'true'
+        with:
+          composer-options: "--ignore-platform-reqs"
+
+      - name: "Give permissions"
+        if: ${{ inputs.change_permissions }}
+        run: |
+          sudo chown -R root:root $GITHUB_WORKSPACE
+
       # ------------------------------------------------------------------------------
       # PHPCS
       # ------------------------------------------------------------------------------
       - uses: reviewdog/action-setup@v1
+        if: steps.files.outputs.has_php_files == 'true'
         with:
           reviewdog_version: latest # Optional. [latest,nightly,v.X.Y.Z]
       - name: Run reviewdog
+        if: steps.files.outputs.has_php_files == 'true'
         env:
           REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.access-token }}
         run: |
-          # Skip when no PHP files changed
-          if [ -z "${{ env.CHANGED_FILES }}" ]; then
-            echo "No PHP files changed, skipping phpcs"
-            exit 0
-          fi
-
-          # Run phpcs — use xargs so filenames with spaces are handled correctly
-          JSON_REPORT=$(echo \"${{ env.CHANGED_FILES }}\" | xargs -d '\n' vendor/bin/phpcs --report=json -q)
+          # Run phpcs — printf + xargs -d '\n' keeps filenames with spaces intact
+          JSON_REPORT=$(printf '%s\n' "${{ env.CHANGED_FILES }}" | xargs -d '\n' vendor/bin/phpcs --report=json -q)
           PHPCS_EXIT_CODE=$?
 
           # Check if phpcs produced a JSON report
