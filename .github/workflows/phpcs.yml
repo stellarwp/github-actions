@@ -78,9 +78,12 @@ jobs:
         env:
           REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.access-token }}
         run: |
-          # Run phpcs — printf + xargs -d '\n' keeps filenames with spaces intact
-          JSON_REPORT=$(printf '%s\n' "${{ env.CHANGED_FILES }}" | xargs -d '\n' vendor/bin/phpcs --report=json -q)
-          PHPCS_EXIT_CODE=$?
+          # Read changed files into array - preserves filenames with spaces, avoids xargs exit code translation
+          mapfile -t FILES <<< "${{ env.CHANGED_FILES }}"
+
+          # Run phpcs - || captures real exit code without letting bash -e kill the step early
+          PHPCS_EXIT_CODE=0
+          JSON_REPORT=$(vendor/bin/phpcs --report=json -q "${FILES[@]}") || PHPCS_EXIT_CODE=$?
 
           # Check if phpcs produced a JSON report
           if [ -z "$JSON_REPORT" ]; then
