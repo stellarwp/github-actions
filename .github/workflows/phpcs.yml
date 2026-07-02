@@ -78,36 +78,27 @@ jobs:
         env:
           REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.access-token }}
         run: |
-          # Read changed files into array - preserves filenames with spaces
           mapfile -t FILES <<< "${{ env.CHANGED_FILES }}"
 
-          # Run phpcs over the changed files, capturing its checkstyle report.
-          # IMPORTANT: phpcs's own exit code reflects EVERY issue in the whole
-          # file, including pre-existing ones on lines this PR never touched, so
-          # it must NOT gate the job - reviewdog does that below. Wrapping in
-          # `set +e` keeps `bash -e` from killing the step before reviewdog runs.
+          # phpcs's exit code covers the whole file (incl. pre-existing issues on
+          # untouched lines), so it must not gate the job. set +e stops bash -e
+          # from killing the step on that non-zero exit.
           set +e
           CHECKSTYLE_REPORT=$(vendor/bin/phpcs --report=checkstyle -q "${FILES[@]}")
           PHPCS_EXIT_CODE=$?
           set -e
 
-          # phpcs prints a <checkstyle> document even when the code is clean, so
-          # empty output combined with a non-zero code means phpcs itself failed
-          # to run (bad standard, parse error, ...). That is a real failure.
+          # No report + non-zero exit means phpcs itself failed to run.
           if [ -z "$CHECKSTYLE_REPORT" ] && [ "$PHPCS_EXIT_CODE" -ne 0 ]; then
             echo "phpcs failed to run (exit code $PHPCS_EXIT_CODE)"
             exit "$PHPCS_EXIT_CODE"
           fi
 
-          # Feed the report to reviewdog. -filter-mode=added limits reporting to
-          # lines changed by this PR and -fail-level=any makes reviewdog exit 1
-          # only when it actually reports such an issue. The job result is thus
-          # driven by NEW violations, not phpcs's whole-file exit code.
+          # reviewdog gates the job: -filter-mode=added + -fail-level=any make it
+          # exit 1 only for violations on lines this PR changed.
           REVIEWDOG_EXIT_CODE=0
           echo "$CHECKSTYLE_REPORT" \
             | reviewdog -f=checkstyle -name="phpcs" -filter-mode="added" -fail-level=any -reporter=github-pr-review \
             || REVIEWDOG_EXIT_CODE=$?
 
-          # 0 when the PR introduced no new violations, 1 when it did (inline
-          # comments have already been posted by reviewdog).
           exit "$REVIEWDOG_EXIT_CODE"
