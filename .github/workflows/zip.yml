@@ -98,11 +98,20 @@ jobs:
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
 
+      - name: Check for npm lockfile
+        id: check-lockfile
+        run: |
+          if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ] || [ -f yarn.lock ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
       - uses: actions/setup-node@v4
         if: steps.check-nvmrc.outputs.exists == 'true'
         with:
           node-version-file: '.nvmrc'
-          cache: 'npm'
+          cache: ${{ steps.check-lockfile.outputs.exists == 'true' && 'npm' || '' }}
 
       - name: Set up authentication for NODE_AUTH_TOKEN if present
         run: |
