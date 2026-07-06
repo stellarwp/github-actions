@@ -98,6 +98,10 @@ jobs:
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
 
+      # ------------------------------------------------------------------------------
+      # Ensures actions/setup-node works as-expected in scenarios where a npm lockfile
+      # doesn't exist, such as when only bun is used.
+      # ------------------------------------------------------------------------------
       - name: Check for npm lockfile
         id: check-lockfile
         run: |
